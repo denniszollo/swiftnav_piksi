@@ -153,7 +153,7 @@ u32 read_data( u8 *data, u32 num_bytes, void* context )
 }
 
 
-int piksi_open( const char *port )
+int piksi_open( const char *port, int baud )
 {
 	/* Step 1: Make sure the device opens OK */
 	int fd = open( port, O_RDWR | O_NOCTTY | O_NDELAY );
@@ -164,7 +164,7 @@ int piksi_open( const char *port )
 
 	struct termios options;
 	cfmakeraw( &options );
-	if( cfsetispeed( &options, B1000000 ) < 0 )
+	if( cfsetispeed( &options, baud2term(baud) ) < 0 )
 	{
 		close( fd );
 		return PIKSI_ERROR_IO;
@@ -196,7 +196,7 @@ int piksi_open( const char *port )
 
 	memcpy( piksi_list[mydev]->port, port, strlen( port ) + 1 );
 	piksi_list[mydev]->fd = fd;
-	piksi_list[mydev]->baud = baud2term( 1000000 );
+	piksi_list[mydev]->baud = baud2term(baud);
 
 	return mydev;
 
