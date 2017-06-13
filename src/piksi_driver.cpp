@@ -107,9 +107,7 @@ namespace swiftnav_piksi
 
         sbp_register_callback(&state, SBP_MSG_HEARTBEAT, &heartbeat_callback, (void*) this, &heartbeat_callback_node);
         sbp_register_callback(&state, SBP_MSG_GPS_TIME, &time_callback, (void*) this, &time_callback_node);
-//		sbp_register_callback(&state, SBP_POS_ECEF, &pos_ecefCallback, (void*) this, &pos_ecef_callback_node);
         sbp_register_callback(&state, SBP_MSG_POS_LLH, &pos_llh_callback, (void*) this, &pos_llh_callback_node);
-        sbp_register_callback(&state, SBP_MSG_DOPS, &dops_callback, (void*) this, &dops_callback_node);
 //		sbp_register_callback(&state, SBP_BASELINE_ECEF, &baseline_ecefCallback, (void*) this, &baseline_ecef_callback_node);
         sbp_register_callback(&state, SBP_MSG_BASELINE_NED, &baseline_ned_callback, (void*) this, &baseline_ned_callback_node);
 //		sbp_register_callback(&state, SBP_VEL_ECEF, &vel_ecefCallback, (void*) this, &vel_ecef_callback_node);
@@ -156,13 +154,14 @@ namespace swiftnav_piksi
 		class PIKSI *driver = (class PIKSI*) context;
         driver->heartbeat_pub_freq.tick();
         driver->heartbeat_flags |= (hb.flags & 0x7);    // accumulate errors for diags
-        driver->sbp_protocol_version =((driver->heartbeat_flags & 0xFF0000)>>16
+        driver->sbp_protocol_version =(hb.flags & 0xFF0000)>>16;
     if  (driver->sbp_protocol_version < 2) {
 		    std::cerr << "SBP Major protocol version mismatch. "
                      "Driver compatible with 2.0 and later. Version " 
-                      << driver->sbp_protocol_version << " detected." << std::endl;
+                      << driver->sbp_protocol_version << driver->heartbeat_flags << " detected." << std::endl;
 		return;
 	}
+}
 
 	void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 	{
@@ -203,6 +202,10 @@ namespace swiftnav_piksi
 		class PIKSI *driver = (class PIKSI*) context;
 
 		msg_pos_llh_t llh = *(msg_pos_llh_t*) msg;
+          
+          // populate diagnostic data
+          driver->llh_pub_freq.tick( );
+          driver->llh_status |= llh.flags;
     
     if ((llh.flags&0x7) != 0) {
 
@@ -227,9 +230,6 @@ namespace swiftnav_piksi
 
       driver->llh_pub.publish( llh_msg );
 
-          // populate diagnostic data
-          driver->llh_pub_freq.tick( );
-          driver->llh_status |= llh.flags;
           driver->num_llh_satellites = llh.n_sats;
           driver->llh_lat = llh.lat;
           driver->llh_lon = llh.lon;
@@ -252,6 +252,10 @@ namespace swiftnav_piksi
 		class PIKSI *driver = (class PIKSI*) context;
 
 		msg_baseline_ned_t sbp_ned = *(msg_baseline_ned_t*) msg;
+          
+            // save diagnostic data
+            driver->rtk_pub_freq.tick( );
+            driver->rtk_status = sbp_ned.flags;
 
     if ((sbp_ned.flags&0x7) != 0) {
         nav_msgs::OdometryPtr rtk_odom_msg( new nav_msgs::Odometry );
@@ -272,8 +276,8 @@ namespace swiftnav_piksi
         rtk_odom_msg->pose.pose.orientation.w = 0;
 
         // populate the pose covariance matrix if we have a good fix
-        h_covariance = (sbp_ned.h_accuracy * sbp_ned.h_accuracy) / 1.0e-6;
-        v_covariance = (sbp_ned.v_accuracy * sbp_ned.v_accuracy) / 1.0e-6;
+        double h_covariance = (sbp_ned.h_accuracy * sbp_ned.h_accuracy) / 1.0e-6;
+        double v_covariance = (sbp_ned.v_accuracy * sbp_ned.v_accuracy) / 1.0e-6;
 
         // Pose x/y/z covariance 
         rtk_odom_msg->pose.covariance[0]  = h_covariance;   // x = 0, 0 in the 6x6 cov matrix
@@ -308,15 +312,12 @@ namespace swiftnav_piksi
 
       driver->rtk_pub.publish( rtk_odom_msg );
 
-          // save diagnostic data
-      driver->rtk_pub_freq.tick( );
-          driver->rtk_status = sbp_ned.flags;
           driver->num_rtk_satellites = sbp_ned.n_sats;
       driver->rtk_north = rtk_odom_msg->pose.pose.position.x;
       driver->rtk_east = rtk_odom_msg->pose.pose.position.y;
           driver->rtk_height = rtk_odom_msg->pose.pose.position.z;
-          driver->rtk_h_accuracy = rtk.h_accuracy / 1000.0;
-          driver->rtk_v_accuracy = rtk.v_accuracy / 1000.0;
+          driver->rtk_h_accuracy = sbp_ned.h_accuracy / 1000.0;
+          driver->rtk_v_accuracy = sbp_ned.v_accuracy / 1000.0;
     }
 		return;
 	}
@@ -397,16 +398,6 @@ void vel_ned_callback(u16 sender_id, u8 len, u8 msg[], void *context)
         {
 			stat.summary( diagnostic_msgs::DiagnosticStatus::ERROR, 
                             "Piksi Error indicated by heartbeat flags" );
-        }
-        else if( num_rtk_satellites < 5 )
-        {
-			stat.summary( diagnostic_msgs::DiagnosticStatus::WARN, 
-                            "RTK Satellite fix invalid: too few satellites in view" );
-        }
-        else if( rtk_status != 1 )
-        {
-			stat.summary( diagnostic_msgs::DiagnosticStatus::WARN, 
-                            "No GPS RTK fix" );
         }
 
 		stat.add( "io_failure_count", io_failure_count );

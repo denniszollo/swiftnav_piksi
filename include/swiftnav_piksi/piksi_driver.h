@@ -140,13 +140,14 @@ namespace swiftnav_piksi
 		unsigned int open_failure_count;
 		unsigned int last_open_failure_count;
         unsigned int heartbeat_flags;       //!< Flags from heartbeat msg
-
+        unsigned int sbp_protocol_version;
         unsigned int num_llh_satellites;   //!< Number of satellites used in llh soln
         unsigned int llh_status;           //!< Flags from POS_LLH message - bit 0: rtk
         double llh_lat;
         double llh_lon;
         double llh_height;
         double llh_h_accuracy;
+        double llh_v_accuracy;
         double hdop;
 
         unsigned int num_rtk_satellites;   //!< Number of satellites used in rtk soln
@@ -155,9 +156,12 @@ namespace swiftnav_piksi
         double rtk_east;
         double rtk_height;
         double rtk_h_accuracy;
+        double rtk_v_accuracy;
         double rtk_vel_north;
         double rtk_vel_east;
         double rtk_vel_up;
+        double rtk_vel_v_covariance;
+        double rtk_vel_h_covariance;
 
 		ros::Rate spin_rate;
 		boost::thread spin_thread;
@@ -165,7 +169,6 @@ namespace swiftnav_piksi
 		friend void heartbeat_callback(u16 sender_id, u8 len, u8 msg[], void *context);
 		friend void time_callback(u16 sender_id, u8 len, u8 msg[], void *context);
 		friend void pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void *context);
-		friend void dops_callback(u16 sender_id, u8 len, u8 msg[], void *context);
 		friend void baseline_ned_callback(u16 sender_id, u8 len, u8 msg[], void *context);
 		friend void vel_ned_callback(u16 sender_id, u8 len, u8 msg[], void *context);
 	};
