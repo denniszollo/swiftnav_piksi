@@ -94,7 +94,7 @@ namespace swiftnav_piksi
 		if( piksid >= 0 )
 			return true;
 
-		piksid = piksi_open( port.c_str( ) );
+		piksid = piksi_open( port.c_str( ) , 115200);
 
 		if( piksid < 0 )
 		{
