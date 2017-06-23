@@ -145,7 +145,7 @@ namespace swiftnav_piksi
 	{
 		if ( context == NULL )
 		{
-			std::cerr << "Context void, OHSHIT" << std::endl;
+			std::cerr << "Critical Error: Pisk SBP driver heartbeat context void." << std::endl;
 			return;
 		}
 		
@@ -167,7 +167,7 @@ namespace swiftnav_piksi
 	{
 		if ( context == NULL )
 		{
-			std::cerr << "Context void, OHSHIT" << std::endl;
+			std::cerr << "Critical Error: Pisk SBP driver time context void." << std::endl;
 			return;
 		}
 
@@ -245,7 +245,7 @@ namespace swiftnav_piksi
 
 		if ( context == NULL )
 		{
-			std::cerr << "Context void, OHSHIT" << std::endl;
+			std::cerr << "Critical Error: Pisk SBP driver baseline context void." << std::endl;
 			return;
 		}
 
@@ -326,7 +326,7 @@ void vel_ned_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 	{
 		if ( context == NULL )
 		{
-			std::cerr << "Context void, OHSHIT" << std::endl;
+			std::cerr << "Critical Error: Pisk SBP driver vel_ned context void." << std::endl;
 			return;
 		}
 
